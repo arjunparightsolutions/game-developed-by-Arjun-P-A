@@ -2,32 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Demon Slayer: Pixel Alchemy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Demon Slayer: Pixel Alchemy DX</title>
     <style>
         :root {
             --bg: #050505;
-            --panel: rgba(20, 25, 40, 0.9);
-            --accent: #ff4757; /* Rengoku Red */
+            --panel: rgba(10, 10, 15, 0.95);
+            --accent: #ff4757;
             --text: #ffffff;
-            --glass: blur(10px);
+            --glass: blur(8px);
         }
 
         body {
             margin: 0;
             background: var(--bg);
             color: var(--text);
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
-            touch-action: none; /* Disables browser zooming on mobile */
+            touch-action: none; /* Critical for mobile game feel */
+            width: 100vw;
+            height: 100dvh; /* Dynamic viewport height for mobile browsers */
             user-select: none;
+            -webkit-user-select: none;
         }
 
-        /* --- LOBBY SCREEN --- */
+        /* --- LOBBY --- */
         #lobby {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(45deg, #000, #1a0b0b);
+            background: radial-gradient(circle at center, #1a0b0b 0%, #000 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -35,567 +38,678 @@
             z-index: 100;
         }
         
-        h1 { font-size: 3rem; text-transform: uppercase; letter-spacing: 5px; margin-bottom: 30px; 
-             background: linear-gradient(to right, #ff9f43, #ff4757); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center;}
-        
-        .mode-card {
-            background: rgba(255,255,255,0.1);
+        h1 {
+            font-size: clamp(2rem, 5vw, 4rem);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            background: linear-gradient(to right, #ff9f43, #ff4757);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .mode-btn {
+            background: rgba(255,255,255,0.08);
             border: 1px solid rgba(255,255,255,0.2);
-            padding: 20px 40px;
+            padding: 20px;
             margin: 10px;
             border-radius: 12px;
-            cursor: pointer;
-            width: 280px;
+            width: 80%;
+            max-width: 300px;
             text-align: center;
+            cursor: pointer;
             transition: 0.2s;
         }
-        .mode-card:hover { background: var(--accent); transform: scale(1.05); color: black; }
-        .mode-card h2 { margin: 0; }
-        .mode-card p { opacity: 0.7; font-size: 0.9rem; }
+        .mode-btn:active { transform: scale(0.95); background: var(--accent); }
+        .mode-btn h2 { margin: 0 0 5px 0; font-size: 1.2rem; }
+        .mode-btn p { margin: 0; opacity: 0.7; font-size: 0.8rem; }
 
         /* --- GAME UI --- */
-        #game-ui { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        
-        /* Top Bar (Stats) */
-        #top-bar {
+        #game-ui {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; /* Let touches pass through to canvas where needed */
+        }
+
+        /* Top HUD */
+        #hud {
             pointer-events: auto;
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 50px;
-            background: var(--panel);
-            backdrop-filter: var(--glass);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
-            border-bottom: 1px solid #333;
-        }
-
-        /* Controls Area (Responsive) */
-        #controls {
-            pointer-events: auto;
-            position: absolute;
-            background: var(--panel);
-            backdrop-filter: var(--glass);
-            display: flex;
-            gap: 5px;
-            overflow-y: auto;
-            border: 1px solid #333;
-        }
-
-        /* DESKTOP LAYOUT */
-        @media (min-width: 769px) {
-            #controls {
-                top: 60px; right: 20px; bottom: 20px;
-                width: 250px;
-                flex-direction: column;
-                border-radius: 12px;
-                padding: 10px;
-            }
-        }
-
-        /* MOBILE LAYOUT */
-        @media (max-width: 768px) {
-            h1 { font-size: 2rem; }
-            #controls {
-                bottom: 0; left: 0; right: 0;
-                height: 80px;
-                flex-direction: row;
-                align-items: center;
-                overflow-x: auto;
-                padding: 0 10px;
-                border-top: 1px solid #333;
-            }
-        }
-
-        /* Buttons */
-        .btn {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #ddd;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: left;
-            flex-shrink: 0;
-            display: flex;
             align-items: center;
-            font-size: 0.9rem;
+            padding: 0 15px;
+            z-index: 10;
         }
-        .btn.active { background: var(--accent); color: black; font-weight: bold; box-shadow: 0 0 15px var(--accent); }
-        .btn span { margin-right: 8px; font-size: 1.2rem; }
+        .hud-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #444;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
 
-        /* Settings Modal */
-        #settings-panel {
+        /* Bottom Controls (Scrollable Strip) */
+        #controls-container {
             pointer-events: auto;
-            display: none;
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            background: #111;
-            border: 2px solid var(--accent);
-            padding: 20px;
-            border-radius: 12px;
-            width: 300px;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            bottom: 0; left: 0; right: 0;
+            height: 90px;
+            background: var(--panel);
+            border-top: 1px solid #333;
+            display: flex;
+            overflow-x: auto;
+            padding: 10px;
+            gap: 10px;
+            /* Hide scrollbar */
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
         }
-        .slider-group { margin-bottom: 15px; }
-        .slider-group label { display: block; margin-bottom: 5px; color: #888; }
-        input[type=range] { width: 100%; }
+        #controls-container::-webkit-scrollbar { display: none; }
+
+        .element-btn {
+            flex: 0 0 auto;
+            width: 70px;
+            height: 70px;
+            background: #1e1e24;
+            border: 2px solid #333;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #888;
+            font-size: 0.7rem;
+            transition: 0.1s;
+        }
+        .element-btn span { font-size: 1.8rem; margin-bottom: 5px; }
+        .element-btn.active {
+            border-color: var(--accent);
+            background: #2d1b1b;
+            color: white;
+            transform: translateY(-5px);
+        }
 
         /* Canvas */
-        canvas { display: block; image-rendering: pixelated; width: 100%; height: 100%; }
-        
-        /* Custom Cursor for Arcade */
-        body.arcade-mode { cursor: crosshair; }
-        
-        #enemy-horde-msg {
-            position: absolute; top: 20%; width: 100%; text-align: center;
-            color: red; font-size: 2rem; font-weight: bold; text-shadow: 0 0 10px black;
-            opacity: 0; transition: opacity 0.5s; pointer-events: none;
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated; /* Crisp pixels */
+        }
+
+        /* Messages */
+        #msg-overlay {
+            position: absolute; top: 20%; width: 100%;
+            text-align: center;
+            font-weight: 900;
+            font-size: 2rem;
+            color: #ff4757;
+            text-shadow: 0 0 20px black;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
     <div id="lobby">
-        <h1>The Iron Sandbox</h1>
-        <div class="mode-card" onclick="startGame('free')">
-            <h2>🕊️ Free Play</h2>
-            <p>Relax. Build. Experiment.</p>
+        <h1>Pixel<br>Breathing</h1>
+        <div class="mode-btn" onclick="initGame('free')">
+            <h2>🕊️ Free Sandbox</h2>
+            <p>Experiment with physics</p>
         </div>
-        <div class="mode-card" onclick="startGame('arcade')">
-            <h2>⚔️ Arcade Slayer</h2>
-            <p>Wield 14 Swords. Defeat the Corruption.</p>
+        <div class="mode-btn" onclick="initGame('arcade')">
+            <h2>👹 Demon Arcade</h2>
+            <p>Fight the corruption</p>
         </div>
     </div>
 
     <div id="game-ui">
-        <div id="top-bar">
-            <button onclick="toggleSettings()" style="background:none; border:1px solid #555; color:white; padding:5px 10px; border-radius:4px;">⚙️ Planet Settings</button>
-            <span id="score-display">RELAX MODE</span>
-            <button onclick="location.reload()" style="background:#333; border:none; color:white; padding:5px;">EXIT</button>
+        <div id="hud">
+            <button class="hud-btn" onclick="resetCanvas()">CLEAR</button>
+            <span id="score">0</span>
+            <button class="hud-btn" onclick="location.reload()">EXIT</button>
         </div>
+        
+        <div id="msg-overlay">WAVE START</div>
 
-        <div id="enemy-horde-msg">WARNING: CORRUPTION DETECTED</div>
-
-        <div id="controls">
+        <div id="controls-container">
             </div>
-
-        <div id="settings-panel">
-            <h3>Planetary Conditions</h3>
-            <div class="slider-group">
-                <label>Gravity (Moon - Earth - Jupiter)</label>
-                <input type="range" min="0" max="10" value="5" id="gravSlider">
-            </div>
-            <div class="slider-group">
-                <label>Atmosphere (Temp/Wind)</label>
-                <input type="range" min="0" max="10" value="5" id="tempSlider">
-            </div>
-            <button onclick="toggleSettings()" style="width:100%; padding:10px; background:var(--accent); border:none; border-radius:4px;">APPLY</button>
-        </div>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="simCanvas"></canvas>
 
 <script>
-    /* =========================================
-       GAME ENGINE & CONFIG
-       ========================================= */
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
-    
-    // Performance Variables
-    const WIDTH = 180; // Simulation Width
-    const HEIGHT = 300; // Simulation Height (Vertical for mobile)
-    let SCALE = 1; 
+    /**
+     * CONFIGURATION & CONSTANTS
+     */
+    const W = 160;  // Internal Simulation Width (Low res for performance)
+    const H = 280;  // Internal Simulation Height
+    let SCALE_X = 1;
+    let SCALE_Y = 1;
 
-    // Simulation State
-    let grid = new Uint8Array(WIDTH * HEIGHT).fill(0);
-    let mode = 'free'; // 'free' or 'arcade'
-    let isRunning = false;
-    
-    // Physics Globals
-    let GRAVITY_CHANCE = 1.0; // 0.1 = Moon, 1.0 = Earth, >1 = Heavy
-    let HEAT_MULTIPLIER = 1.0;
-    
-    // Input State
-    let input = { x: 0, y: 0, down: false, type: 0, radius: 2 };
+    // Element IDs
+    const E_EMPTY = 0;
+    const E_SAND = 1;
+    const E_WATER = 2;
+    const E_STONE = 3;
+    const E_FIRE = 4;
+    const E_ACID = 5;
+    const E_STEAM = 6;
+    const E_LIGHTNING = 7;
+    const E_DEMON = 8; // The "Enemy" block
+    const E_WOOD = 9;
+    const E_BLOOD = 10;
 
-    /* =========================================
-       DATA: ELEMENTS & SWORDS
-       ========================================= */
-    
-    const COLORS = [
-        [10, 10, 15], // 0: Void
-        [220, 200, 100], // 1: Sand
-        [50, 150, 250], // 2: Water
-        [100, 100, 100], // 3: Stone
-        [255, 60, 0],   // 4: Fire
-        [100, 255, 100], // 5: Acid
-        [200, 200, 200], // 6: Steam
-        [255, 255, 50], // 7: Lightning
-        [180, 0, 255]    // 8: Void/Corruption (Enemy)
+    // Physics Properties: [Color, Density, Fluidity, Flammability]
+    // Density: Higher sinks in lower.
+    const PROPS = {
+        [E_EMPTY]: { col: [10,10,15], density: 0, fluid: false },
+        [E_SAND]:  { col: [230,200,100], density: 10, fluid: false },
+        [E_WATER]: { col: [40,150,250], density: 5, fluid: true, spread: 5 },
+        [E_STONE]: { col: [100,100,100], density: 20, fluid: false },
+        [E_FIRE]:  { col: [255,60,0], density: -1, fluid: false, life: 30 },
+        [E_ACID]:  { col: [100,255,50], density: 4, fluid: true, spread: 2 }, // Floats on water
+        [E_STEAM]: { col: [200,200,220], density: -5, fluid: true },
+        [E_LIGHTNING]: { col: [255,255,100], density: 0, fluid: false },
+        [E_DEMON]: { col: [140,0,210], density: 50, fluid: false },
+        [E_WOOD]:  { col: [101, 67, 33], density: 50, fluid: false, burn: true },
+        [E_BLOOD]: { col: [180, 10, 10], density: 6, fluid: true, spread: 3 }
+    };
+
+    // Tools / Swords
+    const TOOLS = [
+        { id: E_SAND, icon: "🥪", name: "Sand" },
+        { id: E_WATER, icon: "💧", name: "Water" },
+        { id: E_STONE, icon: "🪨", name: "Stone" },
+        { id: E_FIRE, icon: "🔥", name: "Flame" },
+        { id: E_WOOD, icon: "🪵", name: "Wood" },
+        { id: E_ACID, icon: "🧪", name: "Acid" },
+        { id: E_LIGHTNING, icon: "⚡", name: "Thunder" },
+        { id: E_EMPTY, icon: "🧹", name: "Eraser" }
     ];
 
     const SWORDS = [
-        { name: "Flame (Rengoku)", id: 1, element: 4, power: "Burn", color: "#ff4757" },
-        { name: "Water (Tanjiro)", id: 2, element: 2, power: "Flow", color: "#1e90ff" },
-        { name: "Thunder (Zenitsu)", id: 3, element: 7, power: "Flash", color: "#eccc68" },
-        { name: "Beast (Inosuke)", id: 4, element: 3, power: "Rip", color: "#747d8c" },
-        { name: "Insect (Shinobu)", id: 5, element: 5, power: "Poison", color: "#a55eea" },
-        { name: "Mist", id: 6, element: 6, power: "Haze", color: "#ced6e0" },
-        { name: "Sound", id: 7, element: 4, power: "Boom", color: "#ffa502" },
-        { name: "Love", id: 8, element: 4, power: "Whip", color: "#ff6b81" },
-        { name: "Serpent", id: 9, element: 5, power: "Snake", color: "#2ed573" },
-        { name: "Flower", id: 10, element: 5, power: "Petal", color: "#ff9ff3" },
-        { name: "Wind", id: 11, element: 0, power: "Gale", color: "#2f3542" }, // Eraser
-        { name: "Stone", id: 12, element: 3, power: "Crush", color: "#57606f" },
-        { name: "Moon", id: 13, element: 8, power: "Chaos", color: "#5352ed" },
-        { name: "Sun (Yoriichi)", id: 14, element: 4, power: "Solar", color: "#ff0000" }
+        { id: E_FIRE, icon: "🔥", name: "Flame", radius: 3 },
+        { id: E_WATER, icon: "🌊", name: "Water", radius: 4 },
+        { id: E_LIGHTNING, icon: "⚡", name: "Thunder", radius: 2, effect: "flash" },
+        { id: E_ACID, icon: "🦋", name: "Insect", radius: 2 },
+        { id: E_STONE, icon: "🐗", name: "Beast", radius: 4 },
+        { id: E_STEAM, icon: "🌫️", name: "Mist", radius: 5 },
+        { id: E_FIRE, icon: "☀️", name: "Sun", radius: 6 } // OP
     ];
 
-    const SANDBOX_TOOLS = [
-        { name: "Sand", val: 1 }, { name: "Water", val: 2 }, { name: "Stone", val: 3 },
-        { name: "Fire", val: 4 }, { name: "Acid", val: 5 }, { name: "Lightning", val: 7 }, 
-        { name: "Eraser", val: 0 }
-    ];
-
-    /* =========================================
-       ARCADE LOGIC (ENEMIES)
-       ========================================= */
-    let enemies = [];
-    let score = 0;
-
-    class Enemy {
-        constructor() {
-            this.x = Math.random() * WIDTH;
-            this.y = 0; // Spawn at top
-            this.size = 5 + Math.random() * 10;
-            this.hp = 20;
-            this.speed = (Math.random() * 0.5) + 0.2;
-        }
-
-        update() {
-            this.y += this.speed;
-            
-            // Interaction with grid
-            let cx = Math.floor(this.x);
-            let cy = Math.floor(this.y);
-            
-            // Eat the world (Turn into corruption)
-            for(let i=0; i<this.size; i++) {
-                for(let j=0; j<this.size; j++) {
-                    let idx = (cy+j)*WIDTH + (cx+i);
-                    if(idx < grid.length && grid[idx] !== 8 && grid[idx] !== 0) {
-                        grid[idx] = 8; // Corrupt the pixel
-                    }
-                }
-            }
-        }
-
-        draw(ctx) {
-            ctx.fillStyle = `rgba(100, 0, 150, 0.8)`;
-            ctx.beginPath();
-            ctx.arc(this.x * SCALE, this.y * SCALE, this.size * SCALE, 0, Math.PI*2);
-            ctx.fill();
-            // Eyes
-            ctx.fillStyle = "white";
-            ctx.fillRect(this.x*SCALE - 5, this.y*SCALE, 4, 4);
-            ctx.fillRect(this.x*SCALE + 5, this.y*SCALE, 4, 4);
-        }
-    }
-
-    /* =========================================
-       INITIALIZATION & UI
-       ========================================= */
+    /**
+     * STATE
+     */
+    let canvas, ctx;
+    let grid = new Uint8Array(W * H);
+    let nextGrid = new Uint8Array(W * H); // Double buffering not strictly needed for sand, but useful
+    let metaGrid = new Int16Array(W * H); // Stores extra data (like heat/life)
     
-    function initCanvas() {
-        const rect = document.body.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-        SCALE = Math.max(rect.width / WIDTH, rect.height / HEIGHT);
-        // Center the view
-    }
-    window.addEventListener('resize', initCanvas);
+    let isRunning = false;
+    let gameMode = 'free';
+    let currentTool = E_SAND;
+    let brushRadius = 2;
+    let score = 0;
+    
+    // Input
+    let input = { x: 0, y: 0, active: false };
 
-    function startGame(selectedMode) {
-        mode = selectedMode;
+    // Arcade State
+    let enemies = [];
+    let frameCount = 0;
+
+    /**
+     * INITIALIZATION
+     */
+    function initGame(mode) {
+        gameMode = mode;
         document.getElementById('lobby').style.display = 'none';
         document.getElementById('game-ui').style.display = 'block';
-        document.body.classList.add(mode === 'arcade' ? 'arcade-mode' : 'free-mode');
         
-        buildControls();
-        initCanvas();
+        setupControls();
+        setupCanvas();
+        
         isRunning = true;
-        
-        if (mode === 'arcade') {
-            document.getElementById('score-display').innerText = "SCORE: 0";
-            input.radius = 4; // Bigger hit area for sword
-            spawnEnemyLoop();
-        } else {
-             document.getElementById('score-display').innerText = "FREE PLAY";
-        }
+        loop();
+    }
 
+    function setupCanvas() {
+        canvas = document.getElementById('simCanvas');
+        ctx = canvas.getContext('2d', { alpha: false });
+        
+        // Handle resizing
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            SCALE_X = canvas.width / W;
+            SCALE_Y = canvas.height / H;
+            ctx.imageSmoothingEnabled = false;
+        };
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Input Listeners (Unified Touch/Mouse)
+        const handleStart = (e) => {
+            e.preventDefault();
+            input.active = true;
+            updateInputCoords(e);
+        };
+        const handleMove = (e) => {
+            e.preventDefault();
+            if(input.active) updateInputCoords(e);
+        };
+        const handleEnd = () => { input.active = false; };
+
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+    }
+
+    function updateInputCoords(e) {
+        let cx, cy;
+        if (e.touches && e.touches.length > 0) {
+            cx = e.touches[0].clientX;
+            cy = e.touches[0].clientY;
+        } else {
+            cx = e.clientX;
+            cy = e.clientY;
+        }
+        
+        // Map to grid coordinates
+        input.x = Math.floor(cx / SCALE_X);
+        input.y = Math.floor(cy / SCALE_Y);
+    }
+
+    function setupControls() {
+        const container = document.getElementById('controls-container');
+        container.innerHTML = '';
+        
+        const items = gameMode === 'arcade' ? SWORDS : TOOLS;
+        
+        items.forEach((item, idx) => {
+            const btn = document.createElement('div');
+            btn.className = `element-btn ${idx === 0 ? 'active' : ''}`;
+            btn.innerHTML = `<span>${item.icon}</span>${item.name}`;
+            btn.onclick = () => {
+                document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTool = item.id;
+                brushRadius = item.radius || 2;
+            };
+            container.appendChild(btn);
+        });
+        
+        // Set Default
+        currentTool = items[0].id;
+        brushRadius = items[0].radius || 2;
+        
+        if(gameMode === 'arcade') {
+            document.getElementById('score').style.display = 'block';
+        } else {
+            document.getElementById('score').style.display = 'none';
+        }
+    }
+
+    function resetCanvas() {
+        grid.fill(E_EMPTY);
+        metaGrid.fill(0);
+        enemies = [];
+        score = 0;
+        document.getElementById('score').innerText = score;
+    }
+
+    /**
+     * CORE SIMULATION LOOP
+     */
+    function loop() {
+        if(!isRunning) return;
+        
+        processInput();
+        updatePhysics();
+        if(gameMode === 'arcade') updateArcade();
+        draw();
+        
+        frameCount++;
         requestAnimationFrame(loop);
     }
 
-    function buildControls() {
-        const c = document.getElementById('controls');
-        c.innerHTML = '';
-        
-        let items = mode === 'arcade' ? SWORDS : SANDBOX_TOOLS;
-        
-        items.forEach((item, index) => {
-            let btn = document.createElement('div');
-            btn.className = 'btn';
-            if (index === 0) btn.classList.add('active');
-            
-            // Logic for Arcade vs Free
-            let val = mode === 'arcade' ? item.element : item.val;
-            
-            btn.innerHTML = `<span>${mode === 'arcade' ? '⚔️' : '⚪'}</span> ${item.name}`;
-            btn.onclick = () => {
-                document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                input.type = val;
-                
-                // If arcade, set sword color visual later
-                if(mode==='arcade') {
-                    document.body.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewport="0 0 20 20" style="fill:black;font-size:20px;"><text y="18">🗡️</text></svg>') 10 10, auto`;
-                }
-            };
-            c.appendChild(btn);
-        });
-        
-        // Set default
-        input.type = mode === 'arcade' ? SWORDS[0].element : SANDBOX_TOOLS[0].val;
-    }
+    function processInput() {
+        if (!input.active) return;
 
-    function toggleSettings() {
-        const p = document.getElementById('settings-panel');
-        p.style.display = p.style.display === 'block' ? 'none' : 'block';
-        
-        // Update physics from sliders
-        document.getElementById('gravSlider').oninput = (e) => {
-            GRAVITY_CHANCE = e.target.value / 5; // 0 to 2.0
-        };
-    }
+        const r = brushRadius;
+        const rSq = r * r;
 
-    function spawnEnemyLoop() {
-        if(!isRunning) return;
-        if(Math.random() < 0.05 + (score * 0.001)) { // Difficulty ramps up
-            enemies.push(new Enemy());
-        }
-        if(enemies.length > 0) {
-            document.getElementById('enemy-horde-msg').style.opacity = 0;
-        } else {
-             document.getElementById('enemy-horde-msg').style.opacity = 0;
-        }
-        setTimeout(spawnEnemyLoop, 1000);
-    }
-
-    /* =========================================
-       INPUT HANDLING (TOUCH & MOUSE)
-       ========================================= */
-    function handleInput(x, y, isDown) {
-        input.down = isDown;
-        const rect = canvas.getBoundingClientRect();
-        
-        // Map screen coordinates to simulation grid
-        let sx = (x - rect.left) / SCALE;
-        let sy = (y - rect.top) / SCALE;
-        
-        input.x = Math.floor(sx);
-        input.y = Math.floor(sy);
-    }
-
-    ['mousedown', 'touchstart'].forEach(evt => 
-        canvas.addEventListener(evt, e => {
-            e.preventDefault();
-            let p = e.touches ? e.touches[0] : e;
-            handleInput(p.clientX, p.clientY, true);
-        })
-    );
-    ['mousemove', 'touchmove'].forEach(evt => 
-        canvas.addEventListener(evt, e => {
-            e.preventDefault(); 
-            if (input.down) {
-                let p = e.touches ? e.touches[0] : e;
-                handleInput(p.clientX, p.clientY, true);
-            }
-        })
-    );
-    ['mouseup', 'touchend'].forEach(evt => 
-        window.addEventListener(evt, () => input.down = false)
-    );
-
-
-    /* =========================================
-       CORE SIMULATION LOOP
-       ========================================= */
-    function update() {
-        let nextGrid = new Uint8Array(grid);
-
-        // 1. INPUT PROCESSING
-        if (input.down) {
-            let r = input.radius;
-            for(let dy=-r; dy<=r; dy++){
-                for(let dx=-r; dx<=r; dx++){
-                    if(dx*dx + dy*dy < r*r) {
-                        let px = input.x + dx;
-                        let py = input.y + dy;
-                        if(px >= 0 && px < WIDTH && py >= 0 && py < HEIGHT) {
-                            // In Arcade mode, input damages enemies
-                            if(mode === 'arcade') {
-                                // Check collision with enemies
-                                for(let i = enemies.length-1; i>=0; i--) {
-                                    let en = enemies[i];
-                                    let ex = en.x; let ey = en.y;
-                                    // Distance check
-                                    let dist = Math.sqrt((px-ex)**2 + (py-ey)**2);
-                                    if(dist < en.size) {
-                                        en.hp--;
-                                        if(en.hp <= 0) {
-                                            enemies.splice(i, 1);
-                                            score += 100;
-                                            document.getElementById('score-display').innerText = "SCORE: " + score;
-                                            // Explosion effect
-                                            for(let k=0; k<20; k++) {
-                                                let exIdx = Math.floor(ey)*WIDTH + Math.floor(ex) + Math.floor(Math.random()*10);
-                                                if(exIdx < grid.length) nextGrid[exIdx] = 4; // Turn to fire
-                                            }
-                                        }
-                                    }
-                                }
-                                // Also draw the element (Sword trail)
-                                nextGrid[py * WIDTH + px] = input.type; 
-                            } else {
-                                // Free play draw
-                                nextGrid[py * WIDTH + px] = input.type;
-                            }
+        for (let dy = -r; dy <= r; dy++) {
+            for (let dx = -r; dx <= r; dx++) {
+                if (dx*dx + dy*dy <= rSq) {
+                    let px = input.x + dx;
+                    let py = input.y + dy;
+                    
+                    if (px >= 0 && px < W && py >= 0 && py < H) {
+                        let idx = py * W + px;
+                        
+                        // Arcade: Damage Enemies
+                        if (gameMode === 'arcade' && enemies.length > 0) {
+                            checkEnemyHit(px, py, currentTool);
                         }
+
+                        // Draw Element
+                        // Don't overwrite walls in arcade unless using Eraser or special sword
+                        grid[idx] = currentTool;
+                        
+                        // Add metadata for fire (lifetime)
+                        if (currentTool === E_FIRE) metaGrid[idx] = 20 + Math.random() * 20;
+                        if (currentTool === E_WATER) metaGrid[idx] = 0; // standard state
                     }
                 }
             }
         }
+    }
 
-        // 2. PIXEL PHYSICS
-        // Iterate bottom to top
-        for (let y = HEIGHT - 1; y >= 0; y--) {
-            // Randomize X direction for natural flow
+    /**
+     * PHYSICS ENGINE
+     */
+    function updatePhysics() {
+        // We iterate randomly or alternating to prevent bias, 
+        // but for simple sand, bottom-up is standard.
+        // We modify 'grid' directly for simpler code in this scope, 
+        // managing race conditions by direction.
+
+        for (let y = H - 1; y >= 0; y--) {
+            // Randomize X direction to prevent stacking bias
             let dir = Math.random() < 0.5 ? 1 : -1;
             
-            for (let i = 0; i < WIDTH; i++) {
-                let x = (dir === 1) ? i : (WIDTH - 1 - i);
-                let idx = y * WIDTH + x;
+            for (let i = 0; i < W; i++) {
+                let x = (dir === 1) ? i : (W - 1 - i);
+                let idx = y * W + x;
                 let type = grid[idx];
 
-                if (type === 0 || type === 3) continue; // Skip Empty & Stone
+                if (type === E_EMPTY) continue;
+                if (type === E_STONE && gameMode === 'free') continue; // Static stone in free mode (unless falling logic desired)
 
-                // GRAVITY LOGIC
-                // Only process gravity sometimes if gravity is low
-                if (Math.random() > GRAVITY_CHANCE && type !== 7 && type !== 6) continue;
-
-                let belowIdx = idx + WIDTH;
+                const props = PROPS[type];
                 
-                // BEHAVIORS
-                if (type === 1 || type === 2 || type === 5 || type === 8) { // POWDERS/LIQUIDS
-                    if (y + 1 < HEIGHT) {
-                        if (nextGrid[belowIdx] === 0) {
-                            nextGrid[belowIdx] = type; nextGrid[idx] = 0;
-                        } else if (nextGrid[belowIdx] === 2 && type === 1) {
-                            // Sand sinks in water
-                            nextGrid[belowIdx] = 1; nextGrid[idx] = 2;
-                        } else {
-                            // Slide logic
-                            let side = Math.random() < 0.5 ? -1 : 1;
-                            let sideIdx = idx + WIDTH + side;
-                            if (x+side >= 0 && x+side < WIDTH && nextGrid[sideIdx] === 0) {
-                                nextGrid[sideIdx] = type; nextGrid[idx] = 0;
+                // --- GAS BEHAVIOR (RISE) ---
+                if (props.density < 0) {
+                    if (y > 0) {
+                        let up = idx - W;
+                        // Move up if empty or if swapping with heavier
+                        if (grid[up] === E_EMPTY || PROPS[grid[up]].density > props.density) {
+                            swap(idx, up);
+                            // Jitter horizontal
+                            let side = up + (Math.random() < 0.5 ? 1 : -1);
+                            if (grid[side] === E_EMPTY) swap(up, side);
+                        }
+                    } else {
+                        grid[idx] = E_EMPTY; // float off screen
+                    }
+                    
+                    // Fire Decay
+                    if (type === E_FIRE) {
+                        metaGrid[idx]--;
+                        if (metaGrid[idx] <= 0) {
+                            grid[idx] = (Math.random() > 0.5) ? E_STEAM : E_EMPTY;
+                        }
+                    }
+                    continue;
+                }
+
+                // --- GRAVITY BEHAVIOR (FALL) ---
+                let moved = false;
+                if (y < H - 1) {
+                    let down = idx + W;
+                    let downType = grid[down];
+                    
+                    // 1. Fall Down (Empty or Denser below)
+                    if (downType === E_EMPTY || (PROPS[downType] && PROPS[downType].density < props.density && PROPS[downType].fluid)) {
+                        swap(idx, down);
+                        moved = true;
+                    } 
+                    // 2. Slide Down-Left/Down-Right (Slope)
+                    else {
+                        let randSide = Math.random() < 0.5 ? -1 : 1;
+                        let downSide = down + randSide;
+                        
+                        if (x + randSide >= 0 && x + randSide < W) {
+                             if (grid[downSide] === E_EMPTY || (PROPS[grid[downSide]].fluid && PROPS[grid[downSide]].density < props.density)) {
+                                swap(idx, downSide);
+                                moved = true;
+                             }
+                        }
+                    }
+                }
+
+                // --- FLUID DISPERSION (FLOW HORIZONTAL) ---
+                if (!moved && props.fluid) {
+                    let spread = props.spread || 1;
+                    // Try to move left or right 'spread' amount
+                    let dir2 = Math.random() < 0.5 ? 1 : -1;
+                    for(let s=1; s<=spread; s++) {
+                        let nx = x + (dir2 * s);
+                        if (nx >= 0 && nx < W) {
+                            let nIdx = y * W + nx;
+                            if (grid[nIdx] === E_EMPTY) {
+                                swap(idx, nIdx);
+                                break;
+                            } else if (grid[nIdx] !== E_EMPTY) {
+                                // Hit a wall, stop trying this direction
+                                break;
                             }
                         }
                     }
                 }
+
+                // --- REACTIONS ---
+                checkReaction(idx, x, y, type);
+            }
+        }
+    }
+
+    function checkReaction(idx, x, y, type) {
+        // Simple 4-neighbor check
+        const neighbors = [idx-1, idx+1, idx-W, idx+W];
+        
+        neighbors.forEach(nIdx => {
+            if (nIdx < 0 || nIdx >= grid.length) return;
+            let nType = grid[nIdx];
+            if (nType === E_EMPTY) return;
+
+            // Water + Fire = Steam
+            if ((type === E_WATER && nType === E_FIRE) || (type === E_FIRE && nType === E_WATER)) {
+                grid[idx] = E_STEAM;
+                grid[nIdx] = E_STEAM;
+            }
+            
+            // Acid dissolves Stone/Wood
+            if (type === E_ACID && (nType === E_STONE || nType === E_WOOD)) {
+                if (Math.random() < 0.05) {
+                    grid[nIdx] = E_STEAM; // Dissolved gas
+                    grid[idx] = E_EMPTY; // Acid used up
+                }
+            }
+
+            // Lightning conducts
+            if (type === E_LIGHTNING && nType === E_WATER) {
+                grid[nIdx] = E_LIGHTNING; // Electrify water
+                setTimeout(() => { if(grid[nIdx] === E_LIGHTNING) grid[nIdx] = E_WATER; }, 100);
+            }
+
+            // Fire burns Wood
+            if (type === E_FIRE && nType === E_WOOD) {
+                 if (Math.random() < 0.1) {
+                     grid[nIdx] = E_FIRE;
+                     metaGrid[nIdx] = 50; // New fire fuel
+                 }
+            }
+        });
+    }
+
+    function swap(i1, i2) {
+        let temp = grid[i1];
+        grid[i1] = grid[i2];
+        grid[i2] = temp;
+        
+        let tempM = metaGrid[i1];
+        metaGrid[i1] = metaGrid[i2];
+        metaGrid[i2] = tempM;
+    }
+
+    /**
+     * ARCADE LOGIC
+     */
+    function updateArcade() {
+        // Spawn Enemies
+        if (frameCount % 100 === 0 && enemies.length < 5) {
+            spawnEnemy();
+        }
+
+        // Update Enemies
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            let e = enemies[i];
+            e.y += 0.2; // Fall speed
+            
+            // Render enemy into grid
+            let cy = Math.floor(e.y);
+            let cx = Math.floor(e.x);
+            let size = e.size;
+            
+            // "Eat" the world
+            for(let dy=0; dy<size; dy++) {
+                for(let dx=0; dx<size; dx++) {
+                    let py = cy + dy;
+                    let px = cx + dx;
+                    if(px >= 0 && px < W && py >= 0 && py < H) {
+                        let idx = py * W + px;
+                        // Enemy body overrides everything except heavy attacks
+                        grid[idx] = E_DEMON; 
+                    }
+                }
+            }
+
+            // Win/Loss check
+            if (e.y > H) {
+                // Enemy reached bottom
+                enemies.splice(i, 1);
+                score = Math.max(0, score - 50);
+                showMsg("BREACHED!");
+            }
+            
+            if (e.hp <= 0) {
+                enemies.splice(i, 1);
+                score += 100;
+                showMsg("SLAIN!");
+                // Explode into blood
+                for(let k=0; k<20; k++) {
+                    let rx = Math.floor(e.x + Math.random()*e.size);
+                    let ry = Math.floor(e.y + Math.random()*e.size);
+                    if(rx>=0 && rx<W && ry>=0 && ry<H) grid[ry*W + rx] = E_BLOOD;
+                }
+            }
+        }
+        document.getElementById('score').innerText = score;
+    }
+
+    function spawnEnemy() {
+        enemies.push({
+            x: Math.random() * (W - 10),
+            y: 0,
+            size: 6 + Math.floor(Math.random() * 6),
+            hp: 20
+        });
+    }
+
+    function checkEnemyHit(x, y, tool) {
+        enemies.forEach(e => {
+            if (x >= e.x && x <= e.x + e.size && y >= e.y && y <= e.y + e.size) {
+                e.hp -= 2; // Damage
                 
-                // FIRE (4) & STEAM (6) & LIGHTNING (7)
-                if (type === 4 || type === 6 || type === 7) {
-                    if (Math.random() < 0.1) { nextGrid[idx] = 0; continue; } // Decay
-                    // Rise
-                    if (y > 0 && nextGrid[idx - WIDTH] === 0) {
-                        nextGrid[idx - WIDTH] = type; nextGrid[idx] = 0;
-                    }
-                    // Fire burns wood/enemy
-                    // Simplified reaction
-                    if(type === 4 && y>0) {
-                        if(grid[idx-1] === 8) nextGrid[idx-1] = 0; // Burn corruption
-                    }
-                }
+                // Visual feedback (flash white)
+                let idx = y*W + x;
+                grid[idx] = E_LIGHTNING;
             }
-        }
-        
-        grid = nextGrid;
-
-        // 3. ENEMY LOGIC (Arcade Only)
-        if (mode === 'arcade') {
-            enemies.forEach(en => en.update());
-            // Game Over Check
-            enemies.forEach(en => {
-                if(en.y > HEIGHT - 10) {
-                    // In a real game, trigger game over. Here, just reset enemy.
-                    en.y = 0; 
-                    score -= 50;
-                    document.getElementById('score-display').innerText = "SCORE: " + score;
-                }
-            });
-        }
+        });
     }
 
+    function showMsg(text) {
+        const el = document.getElementById('msg-overlay');
+        el.innerText = text;
+        el.style.opacity = 1;
+        setTimeout(() => el.style.opacity = 0, 1000);
+    }
+
+    /**
+     * RENDERING
+     */
     function draw() {
-        // Clear background
-        ctx.fillStyle = '#050505';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw Grid
-        // Use direct pixel manipulation for speed
-        let imgData = ctx.createImageData(WIDTH, HEIGHT);
+        // Create image data
+        let imgData = ctx.createImageData(W, H);
         let data = imgData.data;
-        
+
         for (let i = 0; i < grid.length; i++) {
-            let t = grid[i];
-            if (t !== 0) {
-                let col = COLORS[t];
-                let pxIdx = i * 4;
-                data[pxIdx] = col[0];
-                data[pxIdx+1] = col[1];
-                data[pxIdx+2] = col[2];
-                data[pxIdx+3] = 255;
+            let type = grid[i];
+            let col = PROPS[type].col;
+            
+            // Base Index
+            let pIdx = i * 4;
+            
+            // Basic Color
+            data[pIdx] = col[0];
+            data[pIdx+1] = col[1];
+            data[pIdx+2] = col[2];
+            data[pIdx+3] = 255;
+            
+            // Texture variation (noise)
+            if (type !== E_EMPTY) {
+                let noise = (Math.random() - 0.5) * 20;
+                data[pIdx] = Math.max(0, Math.min(255, col[0] + noise));
+                data[pIdx+1] = Math.max(0, Math.min(255, col[1] + noise));
+                data[pIdx+2] = Math.max(0, Math.min(255, col[2] + noise));
+            }
+
+            // Glow logic for Fire/Lightning
+            if (type === E_FIRE || type === E_LIGHTNING) {
+                // (Canvas render doesn't support bloom natively per pixel easily without shaders, 
+                // so we rely on the bright colors contrasting with dark bg)
             }
         }
-        
-        // Create a temporary canvas to scale up the pixel art
-        let tempCanvas = document.createElement('canvas');
-        tempCanvas.width = WIDTH;
-        tempCanvas.height = HEIGHT;
-        tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
-        
-        ctx.save();
-        ctx.scale(SCALE, SCALE);
-        ctx.drawImage(tempCanvas, 0, 0);
-        
-        // Draw Enemies on top
-        if(mode === 'arcade') {
-            enemies.forEach(en => en.draw(ctx));
-        }
-        
-        ctx.restore();
-    }
 
-    function loop() {
-        if(isRunning) {
-            update();
-            draw();
-            requestAnimationFrame(loop);
+        // Draw Sim to Canvas (Scaled)
+        // 1. Put data to temp canvas (in memory) could be faster, but for this size `putImageData` is ok
+        // To scale up without blur, we use drawImage with a temp canvas
+        let tempC = document.createElement('canvas');
+        tempC.width = W;
+        tempC.height = H;
+        tempC.getContext('2d').putImageData(imgData, 0, 0);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tempC, 0, 0, canvas.width, canvas.height);
+        
+        // Draw touch reticle
+        if(input.active) {
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            let rx = (input.x * SCALE_X) + (SCALE_X/2);
+            let ry = (input.y * SCALE_Y) + (SCALE_Y/2);
+            let rr = brushRadius * SCALE_X;
+            ctx.arc(rx, ry, rr, 0, Math.PI*2);
+            ctx.stroke();
         }
     }
 
