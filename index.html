@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Demon Slayer: Pixel Alchemy</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: rgba(20, 25, 40, 0.9);
+            --accent: #ff4757; /* Rengoku Red */
+            --text: #ffffff;
+            --glass: blur(10px);
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            touch-action: none; /* Disables browser zooming on mobile */
+            user-select: none;
+        }
+
+        /* --- LOBBY SCREEN --- */
+        #lobby {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, #000, #1a0b0b);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        h1 { font-size: 3rem; text-transform: uppercase; letter-spacing: 5px; margin-bottom: 30px; 
+             background: linear-gradient(to right, #ff9f43, #ff4757); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center;}
+        
+        .mode-card {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 20px 40px;
+            margin: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 280px;
+            text-align: center;
+            transition: 0.2s;
+        }
+        .mode-card:hover { background: var(--accent); transform: scale(1.05); color: black; }
+        .mode-card h2 { margin: 0; }
+        .mode-card p { opacity: 0.7; font-size: 0.9rem; }
+
+        /* --- GAME UI --- */
+        #game-ui { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
+        /* Top Bar (Stats) */
+        #top-bar {
+            pointer-events: auto;
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 50px;
+            background: var(--panel);
+            backdrop-filter: var(--glass);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        /* Controls Area (Responsive) */
+        #controls {
+            pointer-events: auto;
+            position: absolute;
+            background: var(--panel);
+            backdrop-filter: var(--glass);
+            display: flex;
+            gap: 5px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+
+        /* DESKTOP LAYOUT */
+        @media (min-width: 769px) {
+            #controls {
+                top: 60px; right: 20px; bottom: 20px;
+                width: 250px;
+                flex-direction: column;
+                border-radius: 12px;
+                padding: 10px;
+            }
+        }
+
+        /* MOBILE LAYOUT */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            #controls {
+                bottom: 0; left: 0; right: 0;
+                height: 80px;
+                flex-direction: row;
+                align-items: center;
+                overflow-x: auto;
+                padding: 0 10px;
+                border-top: 1px solid #333;
+            }
+        }
+
+        /* Buttons */
+        .btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #ddd;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .btn.active { background: var(--accent); color: black; font-weight: bold; box-shadow: 0 0 15px var(--accent); }
+        .btn span { margin-right: 8px; font-size: 1.2rem; }
+
+        /* Settings Modal */
+        #settings-panel {
+            pointer-events: auto;
+            display: none;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #111;
+            border: 2px solid var(--accent);
+            padding: 20px;
+            border-radius: 12px;
+            width: 300px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+        .slider-group { margin-bottom: 15px; }
+        .slider-group label { display: block; margin-bottom: 5px; color: #888; }
+        input[type=range] { width: 100%; }
+
+        /* Canvas */
+        canvas { display: block; image-rendering: pixelated; width: 100%; height: 100%; }
+        
+        /* Custom Cursor for Arcade */
+        body.arcade-mode { cursor: crosshair; }
+        
+        #enemy-horde-msg {
+            position: absolute; top: 20%; width: 100%; text-align: center;
+            color: red; font-size: 2rem; font-weight: bold; text-shadow: 0 0 10px black;
+            opacity: 0; transition: opacity 0.5s; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="lobby">
+        <h1>The Iron Sandbox</h1>
+        <div class="mode-card" onclick="startGame('free')">
+            <h2>🕊️ Free Play</h2>
+            <p>Relax. Build. Experiment.</p>
+        </div>
+        <div class="mode-card" onclick="startGame('arcade')">
+            <h2>⚔️ Arcade Slayer</h2>
+            <p>Wield 14 Swords. Defeat the Corruption.</p>
+        </div>
+    </div>
+
+    <div id="game-ui">
+        <div id="top-bar">
+            <button onclick="toggleSettings()" style="background:none; border:1px solid #555; color:white; padding:5px 10px; border-radius:4px;">⚙️ Planet Settings</button>
+            <span id="score-display">RELAX MODE</span>
+            <button onclick="location.reload()" style="background:#333; border:none; color:white; padding:5px;">EXIT</button>
+        </div>
+
+        <div id="enemy-horde-msg">WARNING: CORRUPTION DETECTED</div>
+
+        <div id="controls">
+            </div>
+
+        <div id="settings-panel">
+            <h3>Planetary Conditions</h3>
+            <div class="slider-group">
+                <label>Gravity (Moon - Earth - Jupiter)</label>
+                <input type="range" min="0" max="10" value="5" id="gravSlider">
+            </div>
+            <div class="slider-group">
+                <label>Atmosphere (Temp/Wind)</label>
+                <input type="range" min="0" max="10" value="5" id="tempSlider">
+            </div>
+            <button onclick="toggleSettings()" style="width:100%; padding:10px; background:var(--accent); border:none; border-radius:4px;">APPLY</button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    /* =========================================
+       GAME ENGINE & CONFIG
+       ========================================= */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    // Performance Variables
+    const WIDTH = 180; // Simulation Width
+    const HEIGHT = 300; // Simulation Height (Vertical for mobile)
+    let SCALE = 1; 
+
+    // Simulation State
+    let grid = new Uint8Array(WIDTH * HEIGHT).fill(0);
+    let mode = 'free'; // 'free' or 'arcade'
+    let isRunning = false;
+    
+    // Physics Globals
+    let GRAVITY_CHANCE = 1.0; // 0.1 = Moon, 1.0 = Earth, >1 = Heavy
+    let HEAT_MULTIPLIER = 1.0;
+    
+    // Input State
+    let input = { x: 0, y: 0, down: false, type: 0, radius: 2 };
+
+    /* =========================================
+       DATA: ELEMENTS & SWORDS
+       ========================================= */
+    
+    const COLORS = [
+        [10, 10, 15], // 0: Void
+        [220, 200, 100], // 1: Sand
+        [50, 150, 250], // 2: Water
+        [100, 100, 100], // 3: Stone
+        [255, 60, 0],   // 4: Fire
+        [100, 255, 100], // 5: Acid
+        [200, 200, 200], // 6: Steam
+        [255, 255, 50], // 7: Lightning
+        [180, 0, 255]    // 8: Void/Corruption (Enemy)
+    ];
+
+    const SWORDS = [
+        { name: "Flame (Rengoku)", id: 1, element: 4, power: "Burn", color: "#ff4757" },
+        { name: "Water (Tanjiro)", id: 2, element: 2, power: "Flow", color: "#1e90ff" },
+        { name: "Thunder (Zenitsu)", id: 3, element: 7, power: "Flash", color: "#eccc68" },
+        { name: "Beast (Inosuke)", id: 4, element: 3, power: "Rip", color: "#747d8c" },
+        { name: "Insect (Shinobu)", id: 5, element: 5, power: "Poison", color: "#a55eea" },
+        { name: "Mist", id: 6, element: 6, power: "Haze", color: "#ced6e0" },
+        { name: "Sound", id: 7, element: 4, power: "Boom", color: "#ffa502" },
+        { name: "Love", id: 8, element: 4, power: "Whip", color: "#ff6b81" },
+        { name: "Serpent", id: 9, element: 5, power: "Snake", color: "#2ed573" },
+        { name: "Flower", id: 10, element: 5, power: "Petal", color: "#ff9ff3" },
+        { name: "Wind", id: 11, element: 0, power: "Gale", color: "#2f3542" }, // Eraser
+        { name: "Stone", id: 12, element: 3, power: "Crush", color: "#57606f" },
+        { name: "Moon", id: 13, element: 8, power: "Chaos", color: "#5352ed" },
+        { name: "Sun (Yoriichi)", id: 14, element: 4, power: "Solar", color: "#ff0000" }
+    ];
+
+    const SANDBOX_TOOLS = [
+        { name: "Sand", val: 1 }, { name: "Water", val: 2 }, { name: "Stone", val: 3 },
+        { name: "Fire", val: 4 }, { name: "Acid", val: 5 }, { name: "Lightning", val: 7 }, 
+        { name: "Eraser", val: 0 }
+    ];
+
+    /* =========================================
+       ARCADE LOGIC (ENEMIES)
+       ========================================= */
+    let enemies = [];
+    let score = 0;
+
+    class Enemy {
+        constructor() {
+            this.x = Math.random() * WIDTH;
+            this.y = 0; // Spawn at top
+            this.size = 5 + Math.random() * 10;
+            this.hp = 20;
+            this.speed = (Math.random() * 0.5) + 0.2;
+        }
+
+        update() {
+            this.y += this.speed;
+            
+            // Interaction with grid
+            let cx = Math.floor(this.x);
+            let cy = Math.floor(this.y);
+            
+            // Eat the world (Turn into corruption)
+            for(let i=0; i<this.size; i++) {
+                for(let j=0; j<this.size; j++) {
+                    let idx = (cy+j)*WIDTH + (cx+i);
+                    if(idx < grid.length && grid[idx] !== 8 && grid[idx] !== 0) {
+                        grid[idx] = 8; // Corrupt the pixel
+                    }
+                }
+            }
+        }
+
+        draw(ctx) {
+            ctx.fillStyle = `rgba(100, 0, 150, 0.8)`;
+            ctx.beginPath();
+            ctx.arc(this.x * SCALE, this.y * SCALE, this.size * SCALE, 0, Math.PI*2);
+            ctx.fill();
+            // Eyes
+            ctx.fillStyle = "white";
+            ctx.fillRect(this.x*SCALE - 5, this.y*SCALE, 4, 4);
+            ctx.fillRect(this.x*SCALE + 5, this.y*SCALE, 4, 4);
+        }
+    }
+
+    /* =========================================
+       INITIALIZATION & UI
+       ========================================= */
+    
+    function initCanvas() {
+        const rect = document.body.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+        SCALE = Math.max(rect.width / WIDTH, rect.height / HEIGHT);
+        // Center the view
+    }
+    window.addEventListener('resize', initCanvas);
+
+    function startGame(selectedMode) {
+        mode = selectedMode;
+        document.getElementById('lobby').style.display = 'none';
+        document.getElementById('game-ui').style.display = 'block';
+        document.body.classList.add(mode === 'arcade' ? 'arcade-mode' : 'free-mode');
+        
+        buildControls();
+        initCanvas();
+        isRunning = true;
+        
+        if (mode === 'arcade') {
+            document.getElementById('score-display').innerText = "SCORE: 0";
+            input.radius = 4; // Bigger hit area for sword
+            spawnEnemyLoop();
+        } else {
+             document.getElementById('score-display').innerText = "FREE PLAY";
+        }
+
+        requestAnimationFrame(loop);
+    }
+
+    function buildControls() {
+        const c = document.getElementById('controls');
+        c.innerHTML = '';
+        
+        let items = mode === 'arcade' ? SWORDS : SANDBOX_TOOLS;
+        
+        items.forEach((item, index) => {
+            let btn = document.createElement('div');
+            btn.className = 'btn';
+            if (index === 0) btn.classList.add('active');
+            
+            // Logic for Arcade vs Free
+            let val = mode === 'arcade' ? item.element : item.val;
+            
+            btn.innerHTML = `<span>${mode === 'arcade' ? '⚔️' : '⚪'}</span> ${item.name}`;
+            btn.onclick = () => {
+                document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                input.type = val;
+                
+                // If arcade, set sword color visual later
+                if(mode==='arcade') {
+                    document.body.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewport="0 0 20 20" style="fill:black;font-size:20px;"><text y="18">🗡️</text></svg>') 10 10, auto`;
+                }
+            };
+            c.appendChild(btn);
+        });
+        
+        // Set default
+        input.type = mode === 'arcade' ? SWORDS[0].element : SANDBOX_TOOLS[0].val;
+    }
+
+    function toggleSettings() {
+        const p = document.getElementById('settings-panel');
+        p.style.display = p.style.display === 'block' ? 'none' : 'block';
+        
+        // Update physics from sliders
+        document.getElementById('gravSlider').oninput = (e) => {
+            GRAVITY_CHANCE = e.target.value / 5; // 0 to 2.0
+        };
+    }
+
+    function spawnEnemyLoop() {
+        if(!isRunning) return;
+        if(Math.random() < 0.05 + (score * 0.001)) { // Difficulty ramps up
+            enemies.push(new Enemy());
+        }
+        if(enemies.length > 0) {
+            document.getElementById('enemy-horde-msg').style.opacity = 0;
+        } else {
+             document.getElementById('enemy-horde-msg').style.opacity = 0;
+        }
+        setTimeout(spawnEnemyLoop, 1000);
+    }
+
+    /* =========================================
+       INPUT HANDLING (TOUCH & MOUSE)
+       ========================================= */
+    function handleInput(x, y, isDown) {
+        input.down = isDown;
+        const rect = canvas.getBoundingClientRect();
+        
+        // Map screen coordinates to simulation grid
+        let sx = (x - rect.left) / SCALE;
+        let sy = (y - rect.top) / SCALE;
+        
+        input.x = Math.floor(sx);
+        input.y = Math.floor(sy);
+    }
+
+    ['mousedown', 'touchstart'].forEach(evt => 
+        canvas.addEventListener(evt, e => {
+            e.preventDefault();
+            let p = e.touches ? e.touches[0] : e;
+            handleInput(p.clientX, p.clientY, true);
+        })
+    );
+    ['mousemove', 'touchmove'].forEach(evt => 
+        canvas.addEventListener(evt, e => {
+            e.preventDefault(); 
+            if (input.down) {
+                let p = e.touches ? e.touches[0] : e;
+                handleInput(p.clientX, p.clientY, true);
+            }
+        })
+    );
+    ['mouseup', 'touchend'].forEach(evt => 
+        window.addEventListener(evt, () => input.down = false)
+    );
+
+
+    /* =========================================
+       CORE SIMULATION LOOP
+       ========================================= */
+    function update() {
+        let nextGrid = new Uint8Array(grid);
+
+        // 1. INPUT PROCESSING
+        if (input.down) {
+            let r = input.radius;
+            for(let dy=-r; dy<=r; dy++){
+                for(let dx=-r; dx<=r; dx++){
+                    if(dx*dx + dy*dy < r*r) {
+                        let px = input.x + dx;
+                        let py = input.y + dy;
+                        if(px >= 0 && px < WIDTH && py >= 0 && py < HEIGHT) {
+                            // In Arcade mode, input damages enemies
+                            if(mode === 'arcade') {
+                                // Check collision with enemies
+                                for(let i = enemies.length-1; i>=0; i--) {
+                                    let en = enemies[i];
+                                    let ex = en.x; let ey = en.y;
+                                    // Distance check
+                                    let dist = Math.sqrt((px-ex)**2 + (py-ey)**2);
+                                    if(dist < en.size) {
+                                        en.hp--;
+                                        if(en.hp <= 0) {
+                                            enemies.splice(i, 1);
+                                            score += 100;
+                                            document.getElementById('score-display').innerText = "SCORE: " + score;
+                                            // Explosion effect
+                                            for(let k=0; k<20; k++) {
+                                                let exIdx = Math.floor(ey)*WIDTH + Math.floor(ex) + Math.floor(Math.random()*10);
+                                                if(exIdx < grid.length) nextGrid[exIdx] = 4; // Turn to fire
+                                            }
+                                        }
+                                    }
+                                }
+                                // Also draw the element (Sword trail)
+                                nextGrid[py * WIDTH + px] = input.type; 
+                            } else {
+                                // Free play draw
+                                nextGrid[py * WIDTH + px] = input.type;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. PIXEL PHYSICS
+        // Iterate bottom to top
+        for (let y = HEIGHT - 1; y >= 0; y--) {
+            // Randomize X direction for natural flow
+            let dir = Math.random() < 0.5 ? 1 : -1;
+            
+            for (let i = 0; i < WIDTH; i++) {
+                let x = (dir === 1) ? i : (WIDTH - 1 - i);
+                let idx = y * WIDTH + x;
+                let type = grid[idx];
+
+                if (type === 0 || type === 3) continue; // Skip Empty & Stone
+
+                // GRAVITY LOGIC
+                // Only process gravity sometimes if gravity is low
+                if (Math.random() > GRAVITY_CHANCE && type !== 7 && type !== 6) continue;
+
+                let belowIdx = idx + WIDTH;
+                
+                // BEHAVIORS
+                if (type === 1 || type === 2 || type === 5 || type === 8) { // POWDERS/LIQUIDS
+                    if (y + 1 < HEIGHT) {
+                        if (nextGrid[belowIdx] === 0) {
+                            nextGrid[belowIdx] = type; nextGrid[idx] = 0;
+                        } else if (nextGrid[belowIdx] === 2 && type === 1) {
+                            // Sand sinks in water
+                            nextGrid[belowIdx] = 1; nextGrid[idx] = 2;
+                        } else {
+                            // Slide logic
+                            let side = Math.random() < 0.5 ? -1 : 1;
+                            let sideIdx = idx + WIDTH + side;
+                            if (x+side >= 0 && x+side < WIDTH && nextGrid[sideIdx] === 0) {
+                                nextGrid[sideIdx] = type; nextGrid[idx] = 0;
+                            }
+                        }
+                    }
+                }
+                
+                // FIRE (4) & STEAM (6) & LIGHTNING (7)
+                if (type === 4 || type === 6 || type === 7) {
+                    if (Math.random() < 0.1) { nextGrid[idx] = 0; continue; } // Decay
+                    // Rise
+                    if (y > 0 && nextGrid[idx - WIDTH] === 0) {
+                        nextGrid[idx - WIDTH] = type; nextGrid[idx] = 0;
+                    }
+                    // Fire burns wood/enemy
+                    // Simplified reaction
+                    if(type === 4 && y>0) {
+                        if(grid[idx-1] === 8) nextGrid[idx-1] = 0; // Burn corruption
+                    }
+                }
+            }
+        }
+        
+        grid = nextGrid;
+
+        // 3. ENEMY LOGIC (Arcade Only)
+        if (mode === 'arcade') {
+            enemies.forEach(en => en.update());
+            // Game Over Check
+            enemies.forEach(en => {
+                if(en.y > HEIGHT - 10) {
+                    // In a real game, trigger game over. Here, just reset enemy.
+                    en.y = 0; 
+                    score -= 50;
+                    document.getElementById('score-display').innerText = "SCORE: " + score;
+                }
+            });
+        }
+    }
+
+    function draw() {
+        // Clear background
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw Grid
+        // Use direct pixel manipulation for speed
+        let imgData = ctx.createImageData(WIDTH, HEIGHT);
+        let data = imgData.data;
+        
+        for (let i = 0; i < grid.length; i++) {
+            let t = grid[i];
+            if (t !== 0) {
+                let col = COLORS[t];
+                let pxIdx = i * 4;
+                data[pxIdx] = col[0];
+                data[pxIdx+1] = col[1];
+                data[pxIdx+2] = col[2];
+                data[pxIdx+3] = 255;
+            }
+        }
+        
+        // Create a temporary canvas to scale up the pixel art
+        let tempCanvas = document.createElement('canvas');
+        tempCanvas.width = WIDTH;
+        tempCanvas.height = HEIGHT;
+        tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
+        
+        ctx.save();
+        ctx.scale(SCALE, SCALE);
+        ctx.drawImage(tempCanvas, 0, 0);
+        
+        // Draw Enemies on top
+        if(mode === 'arcade') {
+            enemies.forEach(en => en.draw(ctx));
+        }
+        
+        ctx.restore();
+    }
+
+    function loop() {
+        if(isRunning) {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+    }
+
+</script>
+</body>
+</html>
